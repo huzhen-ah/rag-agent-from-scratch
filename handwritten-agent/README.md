@@ -12,7 +12,7 @@ Model 决策
 → 下一轮执行或结束
 ```
 
-当前版本已经完成 **Checkpoint + HITL + Long-term Memory + Graph Event Streaming + Subgraph + Multi-Agent + RAG Tool + Skills 核心闭环**。它能够运行完整的 Model → Tool → Model 循环，支持可恢复执行、跨会话记忆、事件流、嵌套图、`agent_as_tool` 多 Agent 协作，并可调用独立 RAG 检索服务。Skills 采用渐进式加载：模型先看到元数据，匹配后再通过 `read_file` 读取完整 `SKILL.md`。
+当前版本已经完成 **Checkpoint + HITL + Long-term Memory + Graph Event Streaming + Subgraph + Multi-Agent + RAG Tool + Skills 核心闭环**。它能够运行完整的 Model → Tool → Model 循环，支持可恢复执行、跨会话记忆、事件流、嵌套图、`agent_as_tool` 多 Agent 协作，并可调用独立 RAG 检索服务。Skills 采用渐进式加载：模型先看到元数据，匹配后再通过 `read_skill` 读取完整 `SKILL.md`。
 
 ## 1. 当前实现范围
 
@@ -60,14 +60,15 @@ Model 决策
 - 子 Agent 的 Interrupt 可以穿过 Tool 层冒泡到调用者，`Command.resume` 再按 Task 和 namespace 路由回真正产生 Interrupt 的子图。
 - 已验证同一轮生成多个 `task` ToolCalls、多个子 Agent Task 分别中断与恢复、结果汇合后由 Supervisor 统一总结。
 - `query_rag` 通过 HTTP 调用手写 RAG 的 `/retrieve` 接口，将检索结果作为 ToolMessage 返回模型。
-- Skills 加载 `name + description + path` 元数据并注入 System Prompt，模型按需调用 `read_file` 获取完整工作流说明。
+- Skills 加载 `name + description + path` 元数据并注入 System Prompt，模型按需调用 `read_skill` 获取完整工作流说明。
+- `demo.py` 串联 Skill、Supervisor、Resume Agent、HITL 和本地简历，完成简历与招聘要求的匹配分析。
 
 当前求职 Agent 注册了四个 Tool：
 
 - `read_resume`：按照 `resume_id` 读取本地简历。
 - `search_project_evidence`：按照岗位要求检索项目证据。
 - `query_rag`：调用独立 RAG 服务查询知识库。
-- `read_file`：按路径读取匹配 Skill 的完整说明。
+- `read_skill`：按照 Skill 名称读取完整工作流说明，文件路径不交给模型拼接。
 
 ## 2. 核心运行流程
 
@@ -138,6 +139,7 @@ State → Partial State Update
 | `subgraph.py` | SubGraphNode、嵌套 Checkpoint namespace、父子 State 映射与跨层 Interrupt |
 | `multi_agent.py` | CompiledSubAgent 元数据、统一 TaskTool、子 Agent 调用与结果转换 |
 | `multi_agent_demo.py` | Supervisor + Resume Agent 的 `agent_as_tool` 组装与多 Task/HITL 演示 |
+| `demo.py` | 简历与招聘要求匹配的完整业务演示 |
 | `skill.py` | 加载 Skill 元数据并构造渐进式 Skills 提示词 |
 | `skills/` | 保存各个 Skill 的 `SKILL.md` 与相关资源 |
 | `model.py` | Qwen3 Model Adapter、消息格式转换和 ToolCall ID 标准化 |
@@ -484,6 +486,12 @@ python agent.py
 
 ```bash
 python multi_agent_demo.py
+```
+
+运行简历与招聘要求匹配演示：
+
+```bash
+python demo.py
 ```
 
 输入：

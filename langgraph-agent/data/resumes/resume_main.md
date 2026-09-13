@@ -1,63 +1,64 @@
-# 个人简历
+# 胡真｜大模型应用 / RAG / Agent 工程师
 
 ## 基本信息
 
-- 姓名：待填写
-- 手机：待填写
-- 邮箱：待填写
 - 所在地：广州
-- 求职方向：大模型应用 / RAG / Agent
+- GitHub：huzhen-ah
 
 ## 专业概述
 
-具备计算机专业背景和智能客服对话系统开发经历，理解传统对话系统与大模型应用的差异。近期完成 Mini LLM、手写 RAG 以及 LangChain + Milvus RAG 项目，能够解释文档切分、Dense 检索、BM25、RRF、CrossEncoder 重排、检索评测和生成式问答的完整流程。
+具备多年 NLP 与算法工程经验，覆盖智能客服、语音识别、声纹识别与传感器时序建模，能够独立完成数据建设、模型训练、推理服务和端侧部署。近期完成 Mini LLM、RAG 与 Agent 项目的系统实践。
 
-## 技术能力
+## 个人项目
 
-- Python：能够使用原生 Python 完成数据处理、模型推理和应用流程开发。
-- 大模型基础：理解 Transformer、Embedding、生成模型及常见微调流程。
-- RAG：掌握文档加载、Chunking、Dense Retrieval、BM25、RRF、Reranker 和生成。
-- LangChain：能够使用 Document、Retriever、VectorStore、Reranker 和 LCEL 搭建 RAG。
-- Milvus：能够设计 Collection Schema、Dense/Sparse 字段、HNSW 索引和 BM25 Function。
-- 检索评测：理解并使用 MRR、Recall@K 对检索阶段进行评估。
-- 对话系统：具有智能客服对话系统经验，接触过知识图谱和 Neo4j 数据更新。
-- 深度学习：学习过 VAE、Flow、DDPM、DDIM 和 Stable Diffusion 等生成模型原理。
+### Mini LLM 核心训练与推理全链路｜2026
 
-## 项目经历
+- 项目地址：https://github.com/huzhen-ah/mini-llm-demo
+- 分别使用 Keras / TensorFlow 与 PyTorch 实现 Decoder-only Transformer 及核心组件。
+- 完成 Byte-level BPE、Next-token 预训练、LoRA-SFT 与 LoRA-DPO 的完整训练链路。
+- 实现 Prefill / Decode 推理与 KVCache，支持不同 Prompt 长度的批量生成。
 
-### RAG & Agent Demo
+### RAG 与 Agent Runtime 实践｜2026
 
-- 使用原生 Python 实现文档加载、固定窗口切分和本地问答流程。
-- 使用 Qwen3-Embedding-0.6B 生成归一化 Dense Embedding，并通过矩阵乘法完成语义检索。
-- 使用 Jieba 分词并手写 BM25，包括词频、文档频率、IDF、词频饱和和文档长度归一化。
-- 手写 RRF，将 Dense 与 BM25 两路候选按排名融合。
-- 使用 Qwen3-Reranker-0.6B 对候选进行 CrossEncoder 重排。
-- 使用 MRR 和 Recall@K 分别评测 Dense、BM25、RRF 和 Reranker。
-- 使用 LangChain 与 Milvus Standalone 重构 RAG，完成 Dense + Milvus 原生 BM25 混合检索。
-- 使用 LCEL 串联 Retriever、Reranker、Prompt、本地 Qwen3-1.7B 和输出解析。
+- 项目地址：https://github.com/huzhen-ah/rag-agent-demo
+- 实现 Dense Retrieval、BM25、RRF、Reranker 与检索评估，并封装 RAG HTTP 服务。
+- 使用纯 Python 实现包含持久化恢复、HITL、Memory、Streaming、Subgraph、Multi-Agent 与 Skills 的 Graph Agent Runtime。
+- 使用 LangGraph 重构同一业务流程，并将 RAG 服务接入多 Agent 协作链路。
 
-### Mini LLM Demo
+## 工作经历
 
-- 项目地址：`huzhen-ah/mini-llm-demo`
-- 从底层流程理解并实现 Mini LLM 相关模块。
-- 项目具体功能、训练数据和实验结果待根据实际仓库补充。
+### 云米｜算法工程师｜2021.06-2026.06
 
-### 智能客服对话系统
+#### 智能家居 NLP 与语音算法
 
-- 参与智能客服对话系统相关开发。
-- 具有对话系统业务经验，理解用户意图、知识查询和对话流程的基本问题。
-- 接触 Neo4j 知识数据的定时或实时更新，理解数据源与知识库之间的同步和最终一致性。
-- 公司名称、任职时间、岗位和具体职责待补充。
+- 负责领域数据清洗、BERT 意图识别模型训练及 Sanic 推理服务；后续参与智能家居语音识别与声纹识别预研。
+- 参考 WeNet 使用 Keras 实现端到端 ASR，引入 AISHELL 等中文开源语料；后转用 FunASR 进行领域微调，加入设备名称与控制指令热词，并使用 Sanic 封装 HTTP 服务。
+- 使用 VoxCeleb、CN-Celeb、AISHELL 及领域录音，根据论文复现 ECAPA-TDNN 声纹模型并使用 AAM-Softmax 训练；同设备验证集 EER 约 2%。
 
-## 教育背景
+#### 60 GHz 毫米波雷达血压估计
 
-- 学校：待填写
-- 专业：计算机相关专业
-- 学历：待填写
-- 时间：待填写
-- 毕业论文：隐马尔可夫模型相关应用
+- 参与公司、医院及养老院数百名受试者的数据采集，负责数据清洗、时间对齐、样本构建和模型训练。
+- 对比多种时序模型和训练方案，并使用 PulseDB 进行预训练实验；最终采用轻量化 1D U-Net 同时预测 SBP 与 DBP，按受试者划分数据避免数据泄漏。
+- 测试集 SBP、DBP 均达到 BHS A 级；完成 INT8 量化和 TFLite 部署，芯片上单个 10 秒窗口推理约 50 ms，并集成至数十台雷达样机。
 
-## 项目链接
+#### 60 GHz 毫米波雷达心率检测预研
 
-- Mini LLM：<https://github.com/huzhen-ah/mini-llm-demo>
-- RAG & Agent：<https://github.com/huzhen-ah/rag-agent-demo>
+- 参与数百名受试者的数据采集，负责异常数据清洗、时间戳对齐与训练样本构建；使用信号处理团队提供的特征训练 1D U-Net 心率回归模型。
+- 完成模型评估、TFLite 转换与终端交付，为传统周期信号处理方案提供学习型模型验证。
+
+#### 超声波杯满即停感知预研
+
+- 独立采集 50 多种杯型数据，覆盖不同材质、摆放位置、水流状态及伸手干扰；将复数回波拆分为实部、虚部双通道，训练无杯、高杯、低杯、伸手四分类模型。
+- 设计约 1.6 万参数的轻量 ResNet，完成 INT8 量化与 TFLite 转换；模型在 ESP32 上单次推理约 100 ms，对未参与训练的新杯型保持稳定效果。
+
+### 健客网｜NLP 算法工程师｜2018.11-2021.06
+
+#### 大健客服智能问答系统｜BERT、Neo4j、Redis、Bottle、IVF-PQ
+
+- 面向 Web 与 App 医药售前、售后咨询，提供药品、疾病、优惠及物流等自动问答能力，包含知识图谱与 FAQ 两类检索链路。
+- 独立负责数据标注、BERT 意图识别与实体识别模型训练、上线和迭代。
+- 设计药品-疾病知识图谱，通过实体模糊匹配、别名字典与 Cypher 模板完成 Neo4j 查询。
+- 自研关键词倒排索引，封装 IVF-PQ 向量检索组件，实现 FAQ 关键词及语义匹配。
+- 实现对话流程、固定话术、Redis 会话隔离、兜底与人工转接机制。
+- 使用 Bottle 封装 HTTP 服务，并实现无需重启服务的模型在线更新。
+- 系统日均承接约 10 万-20 万次请求，核心业务指标为药品购买转化率。

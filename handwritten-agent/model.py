@@ -19,7 +19,7 @@ class LocalChatModel:
             local_files_only=True, 
             dtype=torch.float16).to(device)
 
-    def generate(self, messages, tool_definitions, max_new_tokens=300):
+    def generate(self, messages, tool_definitions, max_new_tokens=800):
         model_inputs = self.tokenizer.apply_chat_template(
             messages, 
             tools=tool_definitions, 
@@ -68,7 +68,7 @@ class LocalChatModel:
             qwen_messages.append(qwen_message)
         return qwen_messages
     
-    def invoke(self,messages, tool_definitions, max_new_tokens=300):
+    def invoke(self,messages, tool_definitions, max_new_tokens=800):
         qwen_messages = self.to_qwen_format(messages)
         response = self.generate(qwen_messages,tool_definitions,max_new_tokens=max_new_tokens)
         response_parsed = self.parse_and_normalize_response(response)
