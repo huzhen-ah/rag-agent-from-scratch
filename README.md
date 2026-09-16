@@ -1,6 +1,6 @@
-# RAG & Agent Demo
+# RAG & Agent From Scratch
 
-这是一个用于学习和作品集展示的 RAG 与 Agent 项目。目前包含两套可以对照阅读的 RAG 实现、一套原生 Python 手写的 Graph Agent Runtime，以及对应的 LangGraph 重构版本：
+这是一个覆盖检索、重排、生成与智能体编排核心链路的 RAG 与 Agent 项目。目前包含两套可对照验证的 RAG 实现、一套原生 Python 手写的 Graph Agent Runtime，以及对应的 LangGraph 重构版本：
 
 - `handwritten-rag`：不使用 RAG 编排框架，手写 BM25、RRF 和评测流程。
 - `langchain-rag`：使用 LangChain 与 Milvus Standalone 重构同一条 RAG 链路。
@@ -18,7 +18,7 @@
 ## 项目结构
 
 ```text
-rag-agent-demo/
+rag-agent-from-scratch/
 ├── handwritten-rag/
 │   ├── documents/
 │   ├── dataset/
@@ -71,7 +71,7 @@ rag-agent-demo/
 
 ## Handwritten RAG
 
-手写版用于理解算法和数据流：
+手写版直接实现核心算法和数据流：
 
 - NumPy 保存并检索 Dense Embedding。
 - Jieba 分词。
@@ -100,7 +100,7 @@ python demo.py
 
 ## LangChain + Milvus RAG
 
-LangChain 版用于学习框架组件和向量数据库：
+LangChain 版用于验证框架组件、向量数据库与手写链路之间的工程映射：
 
 - 自行解析 TXT、Markdown 和 PDF。
 - 使用 LangChain `Document` 和文本切分器。
@@ -188,7 +188,7 @@ Qwen3-1.7B
 
 ## 当前边界
 
-这是以理解和跑通流程为目标的本地 Demo，目前没有：
+当前版本聚焦本地算法实现与 Agent Runtime 核心语义，尚未包含：
 
 - API 服务和前端。
 - 生产级并发与流式输出。

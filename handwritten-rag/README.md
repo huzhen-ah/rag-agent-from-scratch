@@ -161,7 +161,7 @@ conda activate ENV_rag
 以下命令均从 `handwritten-rag` 目录执行：
 
 ```bash
-cd rag-agent-demo/handwritten-rag
+cd rag-agent-from-scratch/handwritten-rag
 ```
 
 ### 端到端问答

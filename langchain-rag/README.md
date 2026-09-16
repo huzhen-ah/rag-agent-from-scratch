@@ -1,6 +1,6 @@
 # LangChain + Milvus 混合检索 RAG
 
-这是 `rag-agent-demo` 的框架版 RAG，用于将手写版中已经验证过的检索流程迁移到 LangChain 与 Milvus：
+这是 `rag-agent-from-scratch` 的框架版 RAG，用于将手写版中已经验证过的检索流程迁移到 LangChain 与 Milvus：
 
 ```text
 文档加载与切分
@@ -295,7 +295,7 @@ models/
 下载示例：
 
 ```bash
-cd rag-agent-demo/langchain-rag
+cd rag-agent-from-scratch/langchain-rag
 
 hf download Qwen/Qwen3-Embedding-0.6B \
   --local-dir models/Qwen3-Embedding-0.6B
@@ -333,7 +333,7 @@ Milvus 的部署文件目前不包含在 `langchain-rag` 目录中，需要提�
 以下命令从 `langchain-rag` 目录执行：
 
 ```bash
-cd rag-agent-demo/langchain-rag
+cd rag-agent-from-scratch/langchain-rag
 ```
 
 ### 一键端到端 Demo

@@ -254,7 +254,7 @@ BM25 Function 生成的 Sparse 具体向量值不能像普通标量字段一样�
 进入项目目录：
 
 ```bash
-cd rag-agent-demo/langchain-rag
+cd rag-agent-from-scratch/langchain-rag
 ```
 
 运行：

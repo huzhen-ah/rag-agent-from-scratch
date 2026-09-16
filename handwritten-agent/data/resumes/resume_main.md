@@ -20,7 +20,7 @@
 
 ### RAG 与 Agent Runtime 实践｜2026
 
-- 项目地址：https://github.com/huzhen-ah/rag-agent-demo
+- 项目地址：https://github.com/huzhen-ah/rag-agent-from-scratch
 - 实现 Dense Retrieval、BM25、RRF、Reranker 与检索评估，并封装 RAG HTTP 服务。
 - 使用纯 Python 实现包含持久化恢复、HITL、Memory、Streaming、Subgraph、Multi-Agent 与 Skills 的 Graph Agent Runtime。
 - 使用 LangGraph 重构同一业务流程，并将 RAG 服务接入多 Agent 协作链路。

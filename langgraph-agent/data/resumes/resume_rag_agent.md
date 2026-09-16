@@ -83,5 +83,5 @@ Recall@5：1.00
 
 ## 项目链接
 
-- <https://github.com/huzhen-ah/rag-agent-demo>
+- <https://github.com/huzhen-ah/rag-agent-from-scratch>
 - <https://github.com/huzhen-ah/mini-llm-demo>

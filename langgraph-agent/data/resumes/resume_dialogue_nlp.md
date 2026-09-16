@@ -36,7 +36,7 @@
 
 ## 项目经历
 
-### RAG & Agent Demo
+### RAG & Agent From Scratch
 
 - 使用原生 Python 实现本地混合检索 RAG。
 - 手写 BM25 和 RRF，使用 Dense Retrieval 与关键词检索提高召回覆盖。
@@ -66,4 +66,4 @@
 ## 项目链接
 
 - Mini LLM：<https://github.com/huzhen-ah/mini-llm-demo>
-- RAG & Agent：<https://github.com/huzhen-ah/rag-agent-demo>
+- RAG & Agent：<https://github.com/huzhen-ah/rag-agent-from-scratch>
