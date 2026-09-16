@@ -7,7 +7,7 @@
 - `handwritten-agent`：不使用 LangGraph，手写 State、Reducer、Node、Edge、Router、Compiled Graph 和 Tool-Calling 循环。
 - `langgraph-agent`：使用 LangGraph 重构手写 Agent 的同一套核心业务流程。
 
-手写 Agent 已完成 Checkpoint、HITL、Memory、Streaming、Subgraph、Multi-Agent、RAG Tool 和 Skills。LangGraph 版正在按相同语义逐步迁移。
+手写 Agent 与 LangGraph 重构版均已完成 Checkpoint、HITL、Memory、Streaming、Subgraph、Multi-Agent、RAG Tool 和 Skills，并针对同一业务流程提供可对照实现。
 
 ## 署名
 
@@ -160,6 +160,11 @@ LangGraph 版目前已经完成：
 - 基于 `interrupt()` 和 `Command(resume=...)` 的工具 HITL。
 - 按 Policy 执行参数补充，以及工具调用的 approve、edit、reject。
 - 使用 `Send` 将每个待执行 ToolCall 调度为独立任务。
+- 将参数补充、人工审核和工具执行封装为 Tool Workflow SubGraph。
+- 使用 SQLite Store 保存跨线程长期记忆，并通过 `stream_mode="updates"` 输出节点事件。
+- 使用 Supervisor + `task` Tool 编排 Resume Agent 与 RAG Agent。
+- RAG Agent 通过 HTTP 调用手写 RAG 服务，支持完整检索工具链。
+- 支持 Skill Metadata 与 `read_skill` 按需加载 `SKILL.md`。
 
 ## 两个版本的对应关系
 
@@ -190,7 +195,7 @@ Qwen3-1.7B
 当前版本聚焦本地算法实现与 Agent Runtime 核心语义，尚未包含：
 
 - API 服务和前端。
-- 生产级并发与流式输出。
+- 生产级并发、API 流式传输与限流。
 - 增量索引。
 - 权限控制。
 - 生产级配置和监控。
@@ -199,7 +204,7 @@ Qwen3-1.7B
 ## 后续计划
 
 ```text
-完成LangGraph版本迁移
-→ FastAPI与演示页面
-→ 测试、评测和项目说明完善
+FastAPI与演示页面
+→ 增量索引与权限过滤
+→ 自动化回归测试、正式评测集与生产监控
 ```
