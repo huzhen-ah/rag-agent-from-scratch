@@ -7,7 +7,8 @@ Created on Wed Jul 29 18:55:15 2026
 """
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import PeftModel
 from parser import parse_model_response
 import uuid
 
@@ -29,7 +30,8 @@ class LocalChatModel:
             return_dict=True, 
             return_tensors="pt"
         )
-        model_inputs = model_inputs.to(self.model.device)
+        input_device = self.model.get_input_embeddings().weight.device
+        model_inputs = model_inputs.to(input_device)
         outputs = self.model.generate(
                         **model_inputs,
                         max_new_tokens=max_new_tokens,
@@ -74,6 +76,56 @@ class LocalChatModel:
         response_parsed = self.parse_and_normalize_response(response)
         return response_parsed
     
+class PeftChatModel(LocalChatModel):
+    def __init__(
+        self,
+        model_path,
+        adapter_path,
+        chat_template_path,
+        device="mps"
+    ):
+        self.model_path = model_path
+        self.adapter_path = adapter_path
+        self.chat_template_path = chat_template_path
+        self.device = device
+
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.model_path,
+            local_files_only=True,
+        )
+
+        with open(self.chat_template_path, "r", encoding="utf-8") as file:
+            self.tokenizer.chat_template = file.read()
+
+        if self.device == "cuda":
+            device_map = "auto"
+        else:
+            device_map = {"": self.device}
+
+        base_model = AutoModelForCausalLM.from_pretrained(
+            self.model_path,
+            quantization_config=quantization_config,
+            dtype=torch.bfloat16,
+            device_map=device_map,
+            local_files_only=True,
+            low_cpu_mem_usage=True,
+        )
+
+        self.model = PeftModel.from_pretrained(
+            base_model,
+            self.adapter_path,
+            local_files_only=True,
+        )
+        self.model.eval()
+
+
+
 if __name__ == "__main__":
     from tool_register import Register
     from tools import read_resume_tool

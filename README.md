@@ -6,13 +6,9 @@
 - `langchain-rag`：使用 LangChain 与 Milvus Standalone 重构同一条 RAG 链路。
 - `handwritten-agent`：不使用 LangGraph，手写 State、Reducer、Node、Edge、Router、Compiled Graph 和 Tool-Calling 循环。
 - `langgraph-agent`：使用 LangGraph 重构手写 Agent 的同一套核心业务流程。
+- `appliance-support`：基于手写 RAG 与 Agent Runtime 构建的家电故障诊断应用，串联 Qwen3-8B LoRA、混合检索、工具调用和可视化执行追踪。
 
 手写 Agent 与 LangGraph 重构版均已完成 Checkpoint、HITL、Memory、Streaming、Subgraph、Multi-Agent、RAG Tool 和 Skills，并针对同一业务流程提供可对照实现。
-
-## 署名
-
-- 项目文档由 OpenAI Codex 根据现有代码和实验结果起草。
-- 文档内容由项目作者审核、修改并最终确认。
 
 ## 项目结构
 
@@ -26,6 +22,8 @@ rag-agent-from-scratch/
 │   ├── dense_retrieval.py
 │   ├── reranker.py
 │   ├── rag.py
+│   ├── rag_service.py
+│   ├── appliance_rag_service.py
 │   └── demo.py
 ├── langchain-rag/
 │   ├── documents/
@@ -45,6 +43,8 @@ rag-agent-from-scratch/
 │   ├── model.py
 │   ├── parser.py
 │   ├── tools.py
+│   ├── appliance_support.py
+│   ├── appliance_support_ui.py
 │   └── agent.py
 ├── langgraph-agent/
 │   ├── state.py
@@ -66,6 +66,57 @@ rag-agent-from-scratch/
 → RRF融合
 → CrossEncoder重排
 → 本地LLM生成答案
+```
+
+## 家电故障诊断 Agent
+
+该应用面向“家电出现故障代码或异常现象后如何处理”的真实场景，将微调、RAG 和 Agent 串成一条可运行链路：
+
+```text
+Streamlit双栏界面
+→ 手写Graph Agent Runtime
+→ Qwen3 Tool Calling与多轮信息补全
+→ query_rag HTTP Tool
+→ Qwen3-Embedding + 手写BM25
+→ RRF融合
+→ Qwen3-Reranker精排
+→ Qwen3-8B + LoRA生成故障解释与安全建议
+```
+
+当前家电知识库包含 438 条结构化故障资料，覆盖 13 个品牌和洗衣机、洗碗机、烘干机、冰箱、烤箱/炉灶五类家电。每条资料作为独立 Chunk，保留品牌、市场版本、家电类型、故障代码、故障含义、处理建议与来源链接。
+
+应用支持：
+
+- 信息不足时由模型继续追问，信息充分后生成独立的 `query_rag` 查询。
+- Dense、BM25 双路召回，RRF 融合后使用 CrossEncoder 精排并返回 Top-5。
+- 通过 `thread_id` 和 Checkpoint 保留多轮会话状态；同一会话重复提问时，模型可以复用已有上下文而不重复检索。
+- 右侧执行面板展示模型决策、参数检查、工具审核、RAG 返回文档、来源、分数、排名和节点耗时。
+- Qwen3-8B 基座通过 bitsandbytes NF4 4-bit 加载，并叠加 PEFT LoRA Adapter；同一套 Transformers/PEFT 代码可运行在 Apple Silicon MPS 与 NVIDIA CUDA 环境。
+
+### 运行家电应用
+
+目录约定：`appliance-support-sft` 与 `rag-agent-from-scratch` 位于同一父目录。模型权重、LoRA Adapter 和家电语料由前者提供，不提交到本仓库。
+
+先启动检索服务：
+
+```bash
+conda activate ENV_rag
+cd rag-agent-from-scratch/handwritten-rag
+python appliance_rag_service.py
+```
+
+再启动双栏界面：
+
+```bash
+conda activate ENV_agent
+cd rag-agent-from-scratch/handwritten-agent
+streamlit run appliance_support_ui.py
+```
+
+也可以使用终端交互版：
+
+```bash
+python appliance_support.py
 ```
 
 ## Handwritten RAG
@@ -180,12 +231,19 @@ LangGraph 版目前已经完成：
 
 ## 本地模型
 
-两个版本均使用：
+RAG 使用：
 
 ```text
 Qwen3-Embedding-0.6B
 Qwen3-Reranker-0.6B
 Qwen3-1.7B
+```
+
+家电故障诊断 Agent 额外使用：
+
+```text
+Qwen3-8B
+Qwen3-8B Appliance Support LoRA Adapter
 ```
 
 模型权重不提交到 Git 仓库，需要分别放入各版本的 `models/` 目录。
@@ -194,17 +252,17 @@ Qwen3-1.7B
 
 当前版本聚焦本地算法实现与 Agent Runtime 核心语义，尚未包含：
 
-- API 服务和前端。
 - 生产级并发、API 流式传输与限流。
 - 增量索引。
 - 权限控制。
 - 生产级配置和监控。
 - LangChain 版正式检索评测。
+- 家电场景的大规模多轮与多品牌困难样本评测；当前 LoRA 数据以单轮、单条正确资料为主，复杂上下文中仍可能出现证据混淆。
 
 ## 后续计划
 
 ```text
-FastAPI与演示页面
+家电检索评测与多轮困难样本
 → 增量索引与权限过滤
 → 自动化回归测试、正式评测集与生产监控
 ```

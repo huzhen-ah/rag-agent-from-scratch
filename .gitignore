@@ -19,7 +19,9 @@ models/
 
 # Generated retrieval indexes
 **/dataset/data.pkl
+**/dataset/*_config.pkl
 **/bm25/bm25_config.pkl
+**/bm25/*_config.pkl
 
 # Logs and temporary files
 *.log
@@ -27,5 +29,13 @@ models/
 
 # Local agent checkpoints
 handwritten-agent/checkpoints/
+handwritten-agent/memories/
 handwritten-agent/test.jsonl
 langgraph-agent/checkpoints.sqlite*
+langgraph-agent/memory.sqlite*
+
+# Local reference source trees and scratch output
+handwritten-agent/deepagents-main/
+handwritten-agent/langgraph-main/
+output/
+tmp/

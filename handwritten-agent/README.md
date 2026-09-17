@@ -14,6 +14,43 @@ Model 决策
 
 当前版本已经完成 **Checkpoint + HITL + Long-term Memory + Graph Event Streaming + Subgraph + Multi-Agent + RAG Tool + Skills 核心闭环**。它能够运行完整的 Model → Tool → Model 循环，支持可恢复执行、跨会话记忆、事件流、嵌套图、`agent_as_tool` 多 Agent 协作，并可调用独立 RAG 检索服务。Skills 采用渐进式加载：模型先看到元数据，匹配后再通过 `read_skill` 读取完整 `SKILL.md`。
 
+在该 Runtime 之上，项目进一步实现了家电故障诊断应用：使用 Qwen3-8B + LoRA 进行本地推理，通过 `query_rag` 调用独立混合检索服务，并使用 Streamlit 双栏页面同时展示用户对话与 Graph 内部执行事件。
+
+## 家电故障诊断应用
+
+```text
+User
+→ ModelNode判断信息是否充分
+→ query_rag Tool Call
+→ Dense + BM25 + RRF + Reranker
+→ ToolMessage
+→ ModelNode生成故障解释、处理步骤与安全提醒
+```
+
+相关入口：
+
+| 文件 | 职责 |
+|---|---|
+| `appliance_support.py` | 装配 Qwen3-8B LoRA、Tool Registry、手写 Agent 与终端交互入口 |
+| `appliance_support_ui.py` | Streamlit 双栏界面；左侧对话，右侧展示节点事件、Tool Call、检索文档和耗时 |
+| `model.py` | 保留原 `LocalChatModel`，新增 4-bit NF4 + PEFT LoRA 的 `PeftChatModel` |
+| `tools.py` | `query_rag` 通过 HTTP 调用 `http://127.0.0.1:8080/retrieve` |
+
+运行前先启动 `handwritten-rag/appliance_rag_service.py`，然后执行：
+
+```bash
+conda activate ENV_agent
+streamlit run appliance_support_ui.py
+```
+
+终端版本：
+
+```bash
+python appliance_support.py
+```
+
+同一 `thread_id` 会保留完整消息历史。模型在历史中已经存在有效检索资料时，可能直接复用上下文回答，而不会再次调用 RAG；点击界面的“新建会话”可以创建新的 `thread_id`。
+
 ## 1. 当前实现范围
 
 当前版本已经实现：
@@ -142,7 +179,7 @@ State → Partial State Update
 | `demo.py` | 简历与招聘要求匹配的完整业务演示 |
 | `skill.py` | 加载 Skill 元数据并构造渐进式 Skills 提示词 |
 | `skills/` | 保存各个 Skill 的 `SKILL.md` 与相关资源 |
-| `model.py` | Qwen3 Model Adapter、消息格式转换和 ToolCall ID 标准化 |
+| `model.py` | Qwen3 Model Adapter、4-bit PEFT LoRA 加载、消息格式转换和 ToolCall ID 标准化 |
 | `parser.py` | 解析模型原始输出，提取 `content`、`name` 和 `arguments` |
 | `nodes.py` | ModelNode、ToolArgsCompletionNode、ToolReviewNode、ToolNode 和 MemoryWriteNode |
 | `routers.py` | 根据最新 State 决定进入 ToolNode 或结束 |
@@ -446,7 +483,11 @@ Supervisor ModelNode
 Python 3.11
 PyTorch
 Transformers
+PEFT
+bitsandbytes
 jsonschema
+requests
+streamlit
 ```
 
 进入项目目录：
@@ -468,6 +509,8 @@ models/Qwen3-4B
 ```
 
 当前本地模型使用贪心生成，以提高 ToolCall 名称和参数的稳定性。
+
+家电故障诊断应用还需要同级 `appliance-support-sft` 项目中的 Qwen3-8B、LoRA Adapter 与训练 Chat Template，路径配置见 `appliance_support.py`。
 
 如需使用 `query_rag`，先在 `handwritten-rag` 目录启动检索服务：
 

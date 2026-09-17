@@ -12,12 +12,6 @@ BM25 Retrieval ──┘
 
 项目使用 NumPy 保存和计算 dense embedding，手写 BM25 与 RRF，并使用 Qwen3-Reranker 完成候选重排。除本地完整问答外，当前版本还提供独立的 HTTP 检索服务，供手写 Agent 通过 Tool 调用。
 
-## 署名与贡献说明
-
-- 本项目代码由项目作者独立手写完成。
-- 项目文档由 OpenAI Codex 根据现有代码与实验结果起草。
-- 文档内容由项目作者逐项审核、修改并最终确认。
-
 ## 模型
 
 运行前需要在项目的 `models/` 目录准备以下本地模型：
@@ -200,6 +194,26 @@ BM25 Top-15
 → Reranker Top-5
 → Generator
 ```
+
+### 启动家电故障诊断检索服务
+
+`appliance_rag_service.py` 读取同级项目 `appliance-support-sft/data/ready/rag_corpus.jsonl`。每条家电故障记录直接构造成一个 Chunk，首次运行时生成 Dense Embedding 缓存，后续启动直接加载；BM25、RRF 与 Reranker 继续复用手写实现。
+
+```bash
+python appliance_rag_service.py
+```
+
+家电场景的检索链路为：
+
+```text
+438条家电故障资料
+→ Dense Top-15 + BM25 Top-15
+→ RRF Top-10，c=60
+→ Qwen3-Reranker Top-5
+→ /retrieve 返回文档、来源、分数和排名
+```
+
+服务启动后，由 `handwritten-agent/tools.py` 中的 `query_rag` Tool 调用。生成模型不在该服务中加载，避免 RAG 与 Agent Runtime 耦合。
 
 ### 单独构建 Dense 索引
 
