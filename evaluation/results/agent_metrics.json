@@ -1,0 +1,7 @@
+{
+  "evaluation_scope": "complete_information_query_rag_call",
+  "count": 10,
+  "query_rag_calls": 10,
+  "query_rag_call_rate": 1.0,
+  "note": "当前仅评测品牌、家电类型和故障代码均完整时，Agent是否调用query_rag。"
+}

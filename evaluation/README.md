@@ -1,4 +1,4 @@
-# 家电故障检索评测
+# 家电故障诊断评测
 
 本目录用于比较家电故障知识库的四个检索阶段：
 
@@ -117,4 +117,29 @@ python appliance_rag_service.py
 ```bash
 cd evaluation
 python evaluate_retrieval.py
+```
+
+## Agent工具调用评测
+
+为控制本地模型评测耗时，当前只评测一个最基础场景：用户已经提供完整的品牌、家电类型和故障代码时，Agent是否调用`query_rag`。暂不评测信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。
+
+评测集`data/appliance_agent_eval.jsonl`包含10条单轮问题，每条样本使用独立的`thread_id`，避免历史消息互相干扰。
+
+唯一指标为：
+
+```text
+query_rag调用率 = 调用query_rag的样本数 / 总样本数
+```
+
+评测结果：
+
+| 样本数 | 调用query_rag | query_rag调用率 |
+|---:|---:|---:|
+| 10 | 10 | **1.0000** |
+
+运行方式：
+
+```bash
+cd evaluation
+python evaluate_agent.py
 ```
