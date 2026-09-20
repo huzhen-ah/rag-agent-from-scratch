@@ -53,6 +53,10 @@ rag-agent-from-scratch/
 │   ├── model.py
 │   ├── tools.py
 │   └── agent.py
+├── evaluation/
+│   ├── data/appliance_retrieval_eval.jsonl
+│   ├── evaluate_retrieval.py
+│   └── README.md
 └── README.md
 ```
 
@@ -129,15 +133,18 @@ python appliance_support.py
 - 手写 RRF。
 - Qwen3-Reranker-0.6B 重排。
 - Qwen3-1.7B 生成答案。
-- 使用 MRR 和 Recall@K 分别评测各检索阶段。
+- 使用 Recall@K、MRR@K 和 nDCG@K 分别评测各检索阶段。
 
-当前小型评测集的最终结果：
+当前评测集包含 159 个问题，分别覆盖故障码、故障现象以及故障码与现象组合查询。各检索阶段总体结果如下：
 
-| MRR | Recall@1 | Recall@3 | Recall@5 |
-|---:|---:|---:|---:|
-| 1.00 | 0.90 | 1.00 | 1.00 |
+| 检索阶段 | Recall@1 | Recall@3 | Recall@5 | MRR@5 | nDCG@5 |
+|---|---:|---:|---:|---:|---:|
+| Dense | 0.9418 | **0.9921** | **1.0000** | 0.9827 | 0.9871 |
+| BM25 | 0.8684 | 0.9502 | 0.9895 | 0.9249 | 0.9415 |
+| RRF | **0.9481** | 0.9900 | **1.0000** | **0.9858** | **0.9889** |
+| RRF + Reranker | 0.8831 | 0.9879 | 1.0000 | 0.9502 | 0.9635 |
 
-评测集只有 10 个问题，且问题与原文措辞接近。该结果只用于验证流程和建立回归基线，不代表真实业务效果。
+RRF取得最佳总体结果。当前Reranker提升了症状查询指标，但降低了故障码和混合查询指标，未带来总体增益。评测集由测试文档按规则模板生成，用于检索阶段对比和回归验证，不代表完整真实用户分布。详细结果见 [evaluation/README.md](evaluation/README.md)。
 
 运行：
 

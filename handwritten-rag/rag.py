@@ -64,14 +64,29 @@ class RAG:
                 _ = {"chunk":bm25_id2chunk[chunk_id]["chunk"],"score":score,"rank":i+1}
             ret.append(_)
         return ret
-    
+
+
     def retrieve(self, question, c, k):
         dense_chunks_ret = self.denseRetrieval.search_documents(question,k*3)
         bm25_chunks_ret = self.bm25Retrieval.search_documents(question,k*3)
         rrf_chunks_ret = self.rrf(dense_chunks_ret, bm25_chunks_ret,c,k*2)
-        reranker_chunks = self.reranker.rerank(question,rrf_chunks_ret,k)
+        reranker_chunks_ret = self.reranker.rerank(question,rrf_chunks_ret,k)
         
-        return reranker_chunks
+        return reranker_chunks_ret
+
+    def retrieve_every_stage(self, question, c, k):
+        dense_chunks_ret = self.denseRetrieval.search_documents(question,k*3)
+        bm25_chunks_ret = self.bm25Retrieval.search_documents(question,k*3)
+        rrf_chunks_ret = self.rrf(dense_chunks_ret, bm25_chunks_ret,c,k*2)
+        reranker_chunks_ret = self.reranker.rerank(question,rrf_chunks_ret,k)
+
+        ret = {
+                "dense"    : dense_chunks_ret,
+                "bm25"    : bm25_chunks_ret,
+                "rrf"      : rrf_chunks_ret,
+                "reranker" : reranker_chunks_ret
+                }
+        return ret
         
         
     def answer_question(self,question,c,k):

@@ -113,6 +113,28 @@ def retrieve(request: RetrieveRequest):
         documents.append(document)
     return {"documents" : documents}
 
+@app.post("/retrieve_every_stage")
+def retrieve_every_stage(request: RetrieveRequest):
+    retrieve_results = rag.retrieve_every_stage(question=request.question, c=60, k=5)
+    ret = {}
+    for retrieve_type,type_results in retrieve_results.items():
+        if retrieve_type not in ret:
+            ret[retrieve_type] = {"documents":[]}
+        for result in type_results:
+            chunk = result["chunk"]
+            rank = result["rank"]
+            score = float(result["score"])
+            document = {
+                            "chunk_id" : chunk.chunk_id,
+                            "content" : chunk.content,
+                            "source" : chunk.source,
+                            "page" : chunk.page,
+                            "score" : score,
+                            "rank" : rank
+                       }
+            ret[retrieve_type]["documents"].append(document)
+    return ret
+
 
 if __name__ == "__main__":
     uvicorn.run(
