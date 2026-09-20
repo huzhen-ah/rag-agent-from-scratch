@@ -55,7 +55,9 @@ rag-agent-from-scratch/
 │   └── agent.py
 ├── evaluation/
 │   ├── data/appliance_retrieval_eval.jsonl
+│   ├── data/appliance_agent_eval.jsonl
 │   ├── evaluate_retrieval.py
+│   ├── evaluate_agent.py
 │   └── README.md
 └── README.md
 ```
@@ -96,6 +98,12 @@ Streamlit双栏界面
 - 通过 `thread_id` 和 Checkpoint 保留多轮会话状态；同一会话重复提问时，模型可以复用已有上下文而不重复检索。
 - 右侧执行面板展示模型决策、参数检查、工具审核、RAG 返回文档、来源、分数、排名和节点耗时。
 - Qwen3-8B 基座通过 bitsandbytes NF4 4-bit 加载，并叠加 PEFT LoRA Adapter；同一套 Transformers/PEFT 代码可运行在 Apple Silicon MPS 与 NVIDIA CUDA 环境。
+
+### Agent评测
+
+当前使用10条单轮样本进行基础工具路由评测。每条问题均已提供完整的品牌、家电类型和故障代码，评测Agent是否调用`query_rag`；10条样本全部调用成功，`query_rag`调用率为 **1.0000**。
+
+为控制本地Qwen3-8B的评测耗时，目前仅覆盖“信息完整时是否调用RAG”这一基础场景，暂不代表信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。详细说明见 [evaluation/README.md](evaluation/README.md)。
 
 ### 运行家电应用
 
