@@ -121,7 +121,7 @@ python evaluate_retrieval.py
 
 ## Agent工具调用评测
 
-为控制本地模型评测耗时，当前只评测一个最基础场景：用户已经提供完整的品牌、家电类型和故障代码时，Agent是否调用`query_rag`。暂不评测信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。
+当前只评测一个最基础场景：用户已经提供完整的品牌、家电类型和故障代码时，Agent是否调用`query_rag`。暂不评测信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。评测入口当前使用 `DeepSeekModel`；在当前机器上的交互测试中，其响应速度约为本地 Qwen3-8B + LoRA 的 10 倍，但该数字不是严格基准测试结果。
 
 评测集`data/appliance_agent_eval.jsonl`包含10条单轮问题，每条样本使用独立的`thread_id`，避免历史消息互相干扰。
 
@@ -141,5 +141,6 @@ query_rag调用率 = 调用query_rag的样本数 / 总样本数
 
 ```bash
 cd evaluation
+export DEEPSEEK_API_KEY="你的 API Key"
 python evaluate_agent.py
 ```

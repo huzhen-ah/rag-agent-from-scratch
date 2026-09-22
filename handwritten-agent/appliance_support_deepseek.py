@@ -5,8 +5,7 @@ Created on Thu Sep 17 15:00:52 2026
 
 @author: huzhen
 """
-import sys
-sys.path.append("../handwritten-agent")
+
 import os
 os.environ["HF_DEACTIVATE_ASYNC_LOAD"] = "1"
 # 默认 MPS 高水位限制装不下完整的 8B FP16 权重；2.0 比完全禁用限制更稳妥。
@@ -20,10 +19,6 @@ from checkpoint import InMemoryCheckpointer
 from model import DeepSeekModel
 from tool_register import Register
 from tools import query_rag_tool
-import json
-from tqdm import tqdm
-
-
 
 
 system_prompt = """
@@ -67,48 +62,27 @@ def build_agent():
     return agent
 
 
-def load_jsonl(path):
-    ret = []
-    with open(path,"r",encoding="utf8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            ret.append(json.loads(line))
-    return ret
+def run_cli():
+    agent = build_agent()
+    agent_state = agent.create_initial_state()
+    thread_id = "thread_{}".format(uuid.uuid4().hex)
 
-def evaluate(agent,evaluate_data):
-    correct = 0
-    total = 0
+    while True:
+        user_input = input("用户: ").strip()
 
-    for d in tqdm(iter(evaluate_data),desc="...评测中..."):
-        total += 1
-        thread_id = "thread_{}".format(uuid.uuid4().hex)
-        question = d["user"]
+        if user_input == "exit":
+            break
+
+        if not user_input:
+            continue
         agent_state = agent.invoke(
-            user_input=question,
-            agent_state=agent.create_initial_state(),
+            user_input=user_input,
+            agent_state=agent_state,
             thread_id=thread_id,
             checkpoint_ns="",
             checkpoint_id=None,
         )
-
-        for message in reversed(agent_state["messages"]):
-            if message["role"] == "assistant":
-                tool_calls = message.get("tool_calls",[])
-                if len(tool_calls) == 0:
-                    continue
-                if tool_calls[0]["name"] == "query_rag":
-                    correct += 1
-                break
-    acc = correct / total
-    return acc
-
-
+        print("助手:", agent_state["messages"][-1]["content"])
 
 if __name__ == "__main__":
-    evaluate_agent_data_path = r"data/appliance_agent_eval.jsonl"
-    agent = build_agent()
-    evaluate_data = load_jsonl(evaluate_agent_data_path)
-    acc = evaluate(agent, evaluate_data)
-    print("acc: ",acc)
+    run_cli()

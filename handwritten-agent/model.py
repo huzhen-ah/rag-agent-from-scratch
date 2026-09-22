@@ -11,6 +11,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModel
 from parser import parse_model_response
 import uuid
+from openai import OpenAI
+import os
+import json
+
 
 class LocalChatModel:
     def __init__(self, model_path, device="mps"):
@@ -43,7 +47,7 @@ class LocalChatModel:
 
         response = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
         return response
-    
+
     def parse_and_normalize_response(self,response):
         response = parse_model_response(response)
         for i in range(len(response["tool_calls"])):
@@ -53,7 +57,7 @@ class LocalChatModel:
             del response["tool_calls"][i]["arguments"]
             response["tool_calls"][i]["args"] = arguments
         return response
-    
+
     def to_qwen_format(self,messages):
         qwen_messages = []
         """
@@ -124,6 +128,71 @@ class PeftChatModel(LocalChatModel):
         )
         self.model.eval()
 
+class DeepSeekModel:
+    def __init__(self):
+        self.client = OpenAI(
+            api_key=os.environ["DEEPSEEK_API_KEY"],
+            base_url="https://api.deepseek.com",
+        )
+
+    def generate(self, messages, tool_definitions, max_new_tokens=800):
+
+        response = self.client.chat.completions.create(
+            model="deepseek-flash",
+            messages=messages,
+            tools=tool_definitions,
+            tool_choice="auto",
+            stream=False,
+            extra_body={
+                "thinking": {
+                    "type": "disabled"
+                }
+            },
+        )
+
+        response = response.choices[0].message
+
+
+        return response
+
+    def parse_and_normalize_response(self,message):
+        new_response = {"content":message.content or "", "tool_calls":[]}
+        for tool_call in message.tool_calls or []:
+
+            tool_call = tool_call.model_dump()
+            new_tool_call = {}
+            new_tool_call["id"] = tool_call["id"]
+            new_tool_call["name"] = tool_call["function"]["name"]
+            new_tool_call["args"] = json.loads(tool_call["function"]["arguments"])
+            new_tool_call["type"] = "tool_call"
+            new_response["tool_calls"].append(new_tool_call)
+
+        return new_response
+
+    def to_deepseek_format(self,messages):
+        deepseek_messages = []
+        """
+        role
+        content
+        toolcalls
+        """
+        for message in messages:
+            deepseek_message = {}
+            deepseek_message["role"] = message["role"]
+            deepseek_message["content"] = message["content"]
+            if "tool_calls" in message and message["tool_calls"]:
+                deepseek_message["tool_calls"] = [{"id":tool_call["id"],"function":{"arguments":json.dumps(tool_call["args"]),"name":tool_call["name"]},"type":"function"} for tool_call in message["tool_calls"]]
+            if message["role"] == "tool":
+                deepseek_message["tool_call_id"] = message["tool_call_id"]
+            deepseek_messages.append(deepseek_message)
+        return deepseek_messages
+
+    def invoke(self,messages, tool_definitions, max_new_tokens=800):
+        deepseek_messages = self.to_deepseek_format(messages)
+        response = self.generate(deepseek_messages,tool_definitions,max_new_tokens=max_new_tokens)
+        response_parsed = self.parse_and_normalize_response(response)
+        return response_parsed
+
 
 
 if __name__ == "__main__":
@@ -133,7 +202,7 @@ if __name__ == "__main__":
     register = Register()
     register.register(read_resume_tool)
 
-    chat_model = LocalChatModel(model_path="models/Qwen3-4B", device="mps")
+    chat_model = DeepSeekModel()
 
     messages = [
         {

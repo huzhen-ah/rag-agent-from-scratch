@@ -14,7 +14,7 @@ Model 决策
 
 当前版本已经完成 **Checkpoint + HITL + Long-term Memory + Graph Event Streaming + Subgraph + Multi-Agent + RAG Tool + Skills 核心闭环**。它能够运行完整的 Model → Tool → Model 循环，支持可恢复执行、跨会话记忆、事件流、嵌套图、`agent_as_tool` 多 Agent 协作，并可调用独立 RAG 检索服务。Skills 采用渐进式加载：模型先看到元数据，匹配后再通过 `read_skill` 读取完整 `SKILL.md`。
 
-在该 Runtime 之上，项目进一步实现了家电故障诊断应用：使用 Qwen3-8B + LoRA 进行本地推理，通过 `query_rag` 调用独立混合检索服务，并使用 Streamlit 双栏页面同时展示用户对话与 Graph 内部执行事件。
+在该 Runtime 之上，项目进一步实现了家电故障诊断应用：既支持 Qwen3-8B + LoRA 本地推理，也支持通过 DeepSeek API 运行同一套 Agent Runtime；通过 `query_rag` 调用独立混合检索服务，并使用 Streamlit 双栏页面同时展示用户对话与 Graph 内部执行事件。
 
 ## 家电故障诊断应用
 
@@ -32,8 +32,9 @@ User
 | 文件 | 职责 |
 |---|---|
 | `appliance_support.py` | 装配 Qwen3-8B LoRA、Tool Registry、手写 Agent 与终端交互入口 |
+| `appliance_support_deepseek.py` | 使用 DeepSeek API 驱动同一套手写 Agent Runtime 的终端入口 |
 | `appliance_support_ui.py` | Streamlit 双栏界面；左侧对话，右侧展示节点事件、Tool Call、检索文档和耗时 |
-| `model.py` | 保留原 `LocalChatModel`，新增 4-bit NF4 + PEFT LoRA 的 `PeftChatModel` |
+| `model.py` | 提供 `LocalChatModel`、4-bit NF4 + PEFT LoRA 的 `PeftChatModel`，以及负责消息与 Tool Call 格式转换的 `DeepSeekModel` |
 | `tools.py` | `query_rag` 通过 HTTP 调用 `http://127.0.0.1:8080/retrieve` |
 
 运行前先启动 `handwritten-rag/appliance_rag_service.py`，然后执行：
@@ -49,6 +50,15 @@ streamlit run appliance_support_ui.py
 python appliance_support.py
 ```
 
+DeepSeek API 版本需要先设置 `DEEPSEEK_API_KEY`，再运行：
+
+```bash
+export DEEPSEEK_API_KEY="你的 API Key"
+python appliance_support_deepseek.py
+```
+
+在当前机器上的交互测试中，DeepSeek API 版本的响应速度约为本地 Qwen3-8B + LoRA 版本的 10 倍。该数字是当前环境下的体验值，不是严格基准测试结果。
+
 同一 `thread_id` 会保留完整消息历史。模型在历史中已经存在有效检索资料时，可能直接复用上下文回答，而不会再次调用 RAG；点击界面的“新建会话”可以创建新的 `thread_id`。
 
 ## 1. 当前实现范围
@@ -57,6 +67,7 @@ python appliance_support.py
 
 - Provider-agnostic 的内部 Message 与 ToolCall 协议。
 - Qwen3 Tool Calling 格式适配。
+- DeepSeek Chat Completions 与 Tool Calling 格式适配。
 - 模型原始输出解析与标准化。
 - Runtime 生成并维护 `tool_call_id`。
 - Tool Schema 生成、Tool Registry 和 Tool 调用。
