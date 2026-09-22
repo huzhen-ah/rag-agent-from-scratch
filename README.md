@@ -10,6 +10,10 @@
 
 手写 Agent 与 LangGraph 重构版均已完成 Checkpoint、HITL、Memory、Streaming、Subgraph、Multi-Agent、RAG Tool 和 Skills，并针对同一业务流程提供可对照实现。
 
+## 在线体验
+
+家电故障诊断应用支持通过公网地址体验。由于完整检索链路需要在本地加载 Qwen3 Embedding 与 Reranker 模型，演示服务不会长期在线；如果想体验，请联系项目作者，由作者启动 RAG、Agent 和公网转发服务后提供访问地址。体验者不需要下载模型，也不需要提供 DeepSeek API Key。
+
 ## 项目结构
 
 ```text
@@ -81,12 +85,12 @@ rag-agent-from-scratch/
 ```text
 Streamlit双栏界面
 → 手写Graph Agent Runtime
-→ Qwen3 Tool Calling与多轮信息补全
+→ DeepSeek Tool Calling与多轮信息补全
 → query_rag HTTP Tool
 → Qwen3-Embedding + 手写BM25
 → RRF融合
 → Qwen3-Reranker精排
-→ Qwen3-8B + LoRA生成故障解释与安全建议
+→ DeepSeek生成故障解释与安全建议
 ```
 
 当前家电知识库包含 438 条结构化故障资料，覆盖 13 个品牌和洗衣机、洗碗机、烘干机、冰箱、烤箱/炉灶五类家电。每条资料作为独立 Chunk，保留品牌、市场版本、家电类型、故障代码、故障含义、处理建议与来源链接。
@@ -103,11 +107,11 @@ Streamlit双栏界面
 
 当前使用10条单轮样本进行基础工具路由评测。每条问题均已提供完整的品牌、家电类型和故障代码，评测Agent是否调用`query_rag`；10条样本全部调用成功，`query_rag`调用率为 **1.0000**。
 
-为控制本地Qwen3-8B的评测耗时，目前仅覆盖“信息完整时是否调用RAG”这一基础场景，暂不代表信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。详细说明见 [evaluation/README.md](evaluation/README.md)。
+当前评测入口使用 DeepSeek API，仅覆盖“信息完整时是否调用 RAG”这一基础场景，暂不代表信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。详细说明见 [evaluation/README.md](evaluation/README.md)。
 
 ### 运行家电应用
 
-目录约定：`appliance-support-sft` 与 `rag-agent-from-scratch` 位于同一父目录。模型权重、LoRA Adapter 和家电语料由前者提供，不提交到本仓库。
+目录约定：`appliance-support-sft` 与 `rag-agent-from-scratch` 位于同一父目录。家电语料由前者提供；Embedding 与 Reranker 模型放在 `handwritten-rag/models/`，模型权重不提交到本仓库。
 
 先启动检索服务：
 
@@ -122,13 +126,14 @@ python appliance_rag_service.py
 ```bash
 conda activate ENV_agent
 cd rag-agent-from-scratch/handwritten-agent
+export DEEPSEEK_API_KEY="你的 API Key"
 streamlit run appliance_support_ui.py
 ```
 
 也可以使用终端交互版：
 
 ```bash
-python appliance_support.py
+python appliance_support_deepseek.py
 ```
 
 ## Handwritten RAG

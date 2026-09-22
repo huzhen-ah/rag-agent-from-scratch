@@ -18,6 +18,10 @@ Model 决策
 
 ## 家电故障诊断应用
 
+### 在线体验
+
+完整演示通过公网地址按需开放。由于 RAG 服务需要在作者本地加载 Qwen3 Embedding 与 Reranker 模型，服务不会长期在线；如果想体验，请联系项目作者，由作者启动 RAG、Agent 和公网转发服务后提供访问地址。体验者无需下载本地模型，也无需提供 DeepSeek API Key。
+
 ```text
 User
 → ModelNode判断信息是否充分
