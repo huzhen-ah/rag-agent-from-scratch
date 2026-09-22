@@ -131,20 +131,13 @@ handwritten-rag/
 
 ## 环境依赖
 
-项目使用 Python 3.11，主要依赖：
+项目使用 Python 3.11，依赖统一记录在本目录的 `requirements.txt`：
 
-```text
-torch
-transformers
-sentence-transformers
-numpy
-jieba
-PyMuPDF
-fastapi
-uvicorn
+```bash
+pip install -r requirements.txt
 ```
 
-本项目使用已有 Conda 环境：
+如果使用已有 Conda 环境：
 
 ```bash
 conda activate ENV_rag
@@ -201,6 +194,15 @@ BM25 Top-15
 
 ```bash
 python appliance_rag_service.py
+```
+
+要测试完整的 Agent + RAG 链路，保持该服务运行，再打开另一个终端：
+
+```bash
+cd ../handwritten-agent
+pip install -r requirements.txt
+export DEEPSEEK_API_KEY="你的 API Key"
+streamlit run appliance_support_ui.py
 ```
 
 家电场景的检索链路为：

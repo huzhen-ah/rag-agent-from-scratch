@@ -37,12 +37,33 @@ User
 | `model.py` | 提供 `LocalChatModel`、4-bit NF4 + PEFT LoRA 的 `PeftChatModel`，以及负责消息与 Tool Call 格式转换的 `DeepSeekModel` |
 | `tools.py` | `query_rag` 通过 HTTP 调用 `http://127.0.0.1:8080/retrieve` |
 
-运行前先启动 `handwritten-rag/appliance_rag_service.py`，然后执行：
+### 安装依赖
+
+Agent 与 RAG 使用各自独立的依赖文件。本目录执行：
 
 ```bash
-conda activate ENV_agent
+pip install -r requirements.txt
+```
+
+### 运行测试
+
+先在 `handwritten-rag` 目录启动家电检索服务：
+
+```bash
+cd ../handwritten-rag
+pip install -r requirements.txt
+python appliance_rag_service.py
+```
+
+保持 RAG 服务运行，另开终端进入 `handwritten-agent`，设置 DeepSeek API Key，并使用 Streamlit 启动测试页面：
+
+```bash
+cd ../handwritten-agent
+export DEEPSEEK_API_KEY="你的 API Key"
 streamlit run appliance_support_ui.py
 ```
+
+浏览器打开 Streamlit 给出的本地地址，即可测试完整的 `DeepSeek → Tool Call → RAG → 最终回答` 链路。
 
 终端版本：
 
