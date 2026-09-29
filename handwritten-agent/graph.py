@@ -309,6 +309,8 @@ class CompiledStateGraph:
             task_resume_values = saved_task_id_2_resumes.get(task.task_id,())
             task_result = self.execute_task(task, graph_checkpoint_context, task_resume_values, task_node_runtime)
             task_results.append(task_result)
+            # if task_result.channel == "error":
+            #     raise task_result.value
             writes = self.task_result_to_writes(task_result)
             self.checkpointer.put_writes(thread_id, checkpoint_ns, checkpoint_id, writes)
         return tuple(task_results)

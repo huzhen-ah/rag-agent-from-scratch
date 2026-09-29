@@ -13,7 +13,7 @@ import uuid
 
 import streamlit as st
 
-from appliance_support import build_agent
+from appliance_support_deepseek import build_agent
 
 
 st.set_page_config(
@@ -162,7 +162,7 @@ with chat_column:
             st.markdown(message["content"])
 
     user_input = st.chat_input(
-        "请输入品牌、家电类型、故障代码或故障现象"
+        "请输入品牌、家电类型、故障代码或故障现象，示例：Bosch洗碗机显示E27并且传感器或阀出现故障，这是什么故障？"
     )
 
 

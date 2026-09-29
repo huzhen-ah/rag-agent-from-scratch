@@ -77,12 +77,12 @@ def cut_a_document(document,chunk_id,chunk_size=500,chunk_overlap=100):
         chunk_id += 1
     return chunks
 
-def cut_documents(documents):
+def cut_documents(documents, chunk_size=500, chunk_overlap=100):
     chunks = []
     
     for document in documents:
         chunk_id = len(chunks)
-        _ = cut_a_document(document,chunk_id)
+        _ = cut_a_document(document, chunk_id, chunk_size, chunk_overlap)
         chunks.extend(_)
     return chunks
         

@@ -14,7 +14,9 @@ os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "2.0"
 # 8B 模型直接加载到 MPS 时，Transformers 的多线程加载会造成瞬时内存峰值。
 
 
-from collections import defaultdict
+import uuid
+from agent import Agent
+from checkpoint import InMemoryCheckpointer
 from model import DeepSeekModel
 from tool_register import Register
 from tools import query_rag_tool
@@ -48,10 +50,21 @@ system_prompt = """
 """.strip()
 
 
-def build_evaluator():
+def build_agent():
     register = Register()
     register.register(query_rag_tool)
-    return DeepSeekModel(), register.get_tool_definitions()
+
+    chat_model = DeepSeekModel()
+
+    agent = Agent(
+        chat_model = chat_model,
+        register = register,
+        system_prompt = system_prompt,
+        checkpointer = InMemoryCheckpointer(),
+        tool_hitl_policy = {},
+        max_steps = 6
+    )
+    return agent
 
 
 def load_jsonl(path):
@@ -64,55 +77,38 @@ def load_jsonl(path):
             ret.append(json.loads(line))
     return ret
 
-def evaluate(chat_model, tool_definitions, evaluate_data, output_path):
-    category_stats = defaultdict(lambda: {"correct": 0, "total": 0})
+def evaluate(agent,evaluate_data):
     correct = 0
+    total = 0
 
-    with open(output_path, "w", encoding="utf8") as output_file:
-        for data in tqdm(evaluate_data, desc="...评测中..."):
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": data["user"]},
-            ]
-            response = chat_model.invoke(messages, tool_definitions)
-            tool_calls = response.get("tool_calls", [])
-            called_query_rag = any(
-                tool_call.get("name") == "query_rag" for tool_call in tool_calls
-            )
-
-            query_type = data["query_type"]
-            category_stats[query_type]["total"] += 1
-            if called_query_rag:
-                correct += 1
-                category_stats[query_type]["correct"] += 1
-
-            result = {
-                **data,
-                "called_query_rag": called_query_rag,
-                "assistant_content": response.get("content", ""),
-                "tool_calls": tool_calls,
-            }
-            output_file.write(json.dumps(result, ensure_ascii=False) + "\n")
-            output_file.flush()
-
-    total = len(evaluate_data)
-    print("\noverall: {}/{} = {:.4f}".format(correct, total, correct / total))
-    for query_type in sorted(category_stats):
-        stats = category_stats[query_type]
-        accuracy = stats["correct"] / stats["total"]
-        print(
-            "{}: {}/{} = {:.4f}".format(
-                query_type, stats["correct"], stats["total"], accuracy
-            )
+    for d in tqdm(iter(evaluate_data),desc="...评测中..."):
+        total += 1
+        thread_id = "thread_{}".format(uuid.uuid4().hex)
+        question = d["user"]
+        agent_state = agent.invoke(
+            user_input=question,
+            agent_state=agent.create_initial_state(),
+            thread_id=thread_id,
+            checkpoint_ns="",
+            checkpoint_id=None,
         )
-    print("failures: {}".format(total - correct))
-    print("details: {}".format(output_path))
+
+        for message in reversed(agent_state["messages"]):
+            if message["role"] == "assistant":
+                tool_calls = message.get("tool_calls",[])
+                if len(tool_calls) == 0:
+                    continue
+                if tool_calls[0]["name"] == "query_rag":
+                    correct += 1
+                break
+    acc = correct / total
+    return acc
 
 
 
 if __name__ == "__main__":
     evaluate_agent_data_path = r"data/appliance_agent_eval.jsonl"
-    output_path = r"results/agent_predictions.jsonl"
-    chat_model, tool_definitions = build_evaluator()
+    agent = build_agent()
     evaluate_data = load_jsonl(evaluate_agent_data_path)
-    evaluate(chat_model, tool_definitions, evaluate_data, output_path)
+    acc = evaluate(agent, evaluate_data)
+    print("acc: ",acc)

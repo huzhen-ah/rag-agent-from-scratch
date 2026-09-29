@@ -1,0 +1,13 @@
+torch
+transformers
+sentence-transformers
+numpy
+fastapi
+uvicorn
+pydantic
+pymilvus==3.0.2
+SQLAlchemy>=2.0,<3.0
+psycopg[binary]>=3.2,<4.0
+minio>=7.2,<8.0
+requests>=2.32,<3.0
+tqdm>=4.67,<5.0

@@ -121,9 +121,9 @@ python evaluate_retrieval.py
 
 ## Agent工具调用评测
 
-当前只评测一个最基础场景：用户已经提供完整的品牌、家电类型和故障代码时，Agent是否调用`query_rag`。暂不评测信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。评测入口当前使用 `DeepSeekModel`；在当前机器上的交互测试中，其响应速度约为本地 Qwen3-8B + LoRA 的 10 倍，但该数字不是严格基准测试结果。
+当前评测用户已经提供完整品牌、家电类型，以及故障代码或明确故障现象时，Agent 是否调用 `query_rag`。评测只执行第一次模型路由决策，不实际执行 RAG 和第二次模型回答；这与当前指标的评测目标一致，也能减少时间和 API 消耗。暂不评测信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。
 
-评测集`data/appliance_agent_eval.jsonl`包含10条单轮问题，每条样本使用独立的`thread_id`，避免历史消息互相干扰。
+评测集 `data/appliance_agent_eval.jsonl` 与 RAG 检索评测集使用相同的 159 个问题，包含 `code_lookup`、`symptom_lookup` 和 `code_and_symptom` 三类，各 53 条。每条样本使用独立的 `thread_id`，避免历史消息互相干扰。
 
 唯一指标为：
 
@@ -131,11 +131,13 @@ python evaluate_retrieval.py
 query_rag调用率 = 调用query_rag的样本数 / 总样本数
 ```
 
-评测结果：
+原 10 条样本的调用率为 1.0000。扩充到 159 条后，完整评测耗时 7 分 04 秒，结果如下：
 
-| 样本数 | 调用query_rag | query_rag调用率 |
+| 样本数 | 调用 query_rag | query_rag 调用率 |
 |---:|---:|---:|
-| 10 | 10 | **1.0000** |
+| 159 | 136 | **0.8553** |
+
+共有 23 条问题未触发 `query_rag`。当前评测脚本只统计总体调用率，尚未输出分类指标或失败样本，因此不能仅根据总体结果判断失败主要来自哪一类查询。
 
 运行方式：
 
@@ -143,4 +145,36 @@ query_rag调用率 = 调用query_rag的样本数 / 总样本数
 cd evaluation
 export DEEPSEEK_API_KEY="你的 API Key"
 python evaluate_agent.py
+```
+
+脚本会输出总体及三种查询类型各自的调用率，并将每条模型回答、`tool_calls` 和是否调用 `query_rag` 保存到 `results/agent_predictions.jsonl`。失败样本可使用以下命令查看：
+
+```bash
+jq -c 'select(.called_query_rag == false)' results/agent_predictions.jsonl
+```
+
+## Prompt优化数据集
+
+`data/prompt_optimization/` 用于后续自动选择 Prompt，不替代上面的正式 Agent 评测集。数据以原始故障文档为分组单位切分，确保同一故障的不同问法不会跨越 train、dev 和 test，避免数据泄漏。
+
+| 数据集 | 源故障数 | 应调用工具 | 应追问 | 总数 |
+|---|---:|---:|---:|---:|
+| train | 33 | 90 | 90 | 180 |
+| dev | 10 | 27 | 27 | 54 |
+| test | 10 | 27 | 27 | 54 |
+| 合计 | 53 | 144 | 144 | 288 |
+
+应调用工具的样本包含故障码查询、信息明确的故障现象查询，以及故障码与现象组合查询。应追问样本覆盖五类边界：缺少品牌、缺少家电类型、缺少故障信息、已有现象但缺品牌、已有现象但缺家电类型；每类包含多种问法。另有 15 条症状问法经过人工复核，被标记为只有模糊的部件级故障判断、仍需追问，其中 train/dev/test 分别包含 9/3/3 条。
+
+生成器共保留 463 条去重后的负样本候选，写入 `negative_pool.jsonl`；再在每个 split 内按照缺失字段组合轮流抽样，使正式 train/dev/test 严格保持正负 1:1。这样既保留难例多样性，又避免类别比例驱动优化器过度追问。不同 split 之间的问题文本与源故障文档均无交叉。
+
+输出样本只保留评分必需字段：`user`、`expected_action`，以及按行为出现的 `expected_tool_name` 或 `missing_fields`。源文档、切分归属和人工复核清单只保留在生成脚本内部。自动优化只能使用 train，通过 dev 选择 Prompt，test 只用于最终报告。
+
+三个 split 同时包含正负样本，并在源故障文档级别完全隔离，因此“始终调用工具”或“始终追问”都无法取得高分。选择 Prompt 时应使用宏平均指标，避免类别数量差异影响结果。
+
+重新生成数据：
+
+```bash
+cd evaluation
+python build_prompt_optimization_dataset.py
 ```

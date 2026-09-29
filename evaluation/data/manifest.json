@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-09-20",
+  "source": "appliance-support-sft/data/processed/rag_documents.jsonl",
+  "source_split": "test",
+  "source_documents": 53,
+  "retrieval_cases": 159,
+  "retrieval_query_type_counts": {
+    "code_and_symptom": 53,
+    "code_lookup": 53,
+    "symptom_lookup": 53
+  },
+  "agent_scenarios": 96,
+  "agent_turns": 132,
+  "agent_category_counts": {
+    "complete_single_turn": 24,
+    "correction_override": 12,
+    "followup_with_prior_evidence": 12,
+    "missing_appliance_type": 12,
+    "missing_brand": 12,
+    "missing_fault_detail": 12,
+    "multi_turn_completion": 12
+  },
+  "brands": [
+    "Beko",
+    "Bosch",
+    "Candy",
+    "Frigidaire",
+    "GE",
+    "Hoover",
+    "Hotpoint",
+    "Indesit",
+    "LG",
+    "Maytag",
+    "Miele",
+    "Samsung",
+    "Whirlpool"
+  ],
+  "appliance_types": [
+    "dishwasher",
+    "dryer",
+    "oven_range",
+    "refrigerator",
+    "washer"
+  ],
+  "notes": [
+    "评测目标文档全部来自原始数据的test划分。",
+    "检索问题由故障代码、故障含义和元数据按固定模板生成，未调用待评测模型。",
+    "Agent评测同时覆盖工具调用、缺参追问、多轮补全、信息纠正和历史证据复用。"
+  ]
+}

@@ -124,7 +124,7 @@ def query_rag(question: str) -> list[dict]:
         question: 需要检索的问题。
     """
     try:
-        ret = requests.post("http://127.0.0.1:8080/retrieve",json={"question":question},timeout=120)
+        ret = requests.post("http://127.0.0.1:8080/retrieve",json={"question":question, "user_id":"user-001", "knowledge_base_id":"kb-fault-codes"},timeout=120)
         ret.raise_for_status()
         ret = ret.json()
     except requests.RequestException as error:
