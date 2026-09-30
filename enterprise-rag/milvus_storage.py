@@ -43,6 +43,13 @@ class MilvusStorage:
         self.client.create_collection(collection_name=collection_name, schema=schema, index_params=index_params)
         print("collection: {} 创建成功".format(collection_name))
 
+    def delete_records(self, collection_name, record_ids):
+        if not record_ids:
+            return {"delete_count" : 0}
+        result = self.client.delete(collection_name = collection_name, ids = record_ids)
+        print("删除了: {} 条记录".format(result["delete_count"]))
+        return result
+
     def upsert_records(self, collection_name, records):
         result = self.client.upsert(collection_name, records)
         print("写入Milvus {} 条".format(result["upsert_count"]))
@@ -59,7 +66,7 @@ class MilvusStorage:
     def hybrid_search(self, collection_name, question, query_vector, filter_expression, candidate_limit=20, result_limit=20):
         dense_request = AnnSearchRequest(data=[query_vector], anns_field="dense_vector", param={"metric_type": "COSINE"}, limit=candidate_limit, expr=filter_expression)
         sparse_request = AnnSearchRequest(data=[question], anns_field="sparse_vector", param={"metric_type": "BM25"}, limit=candidate_limit, expr=filter_expression)
-        results = self.client.hybrid_search(collection_name=collection_name, reqs=[dense_request, sparse_request], ranker=RRFRanker(), limit=result_limit, output_fields=["record_id", "tenant_id", "knowledge_base_id", "document_id", "content", "attributes"])
+        results = self.client.hybrid_search(collection_name=collection_name, reqs=[dense_request, sparse_request], ranker=RRFRanker(), limit=result_limit, output_fields=["record_id", "tenant_id", "knowledge_base_id", "document_id", "content", "attributes"], consistency_level="Strong")
         return results[0]
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@
 - MinIO 保存原始文档。
 - Milvus 同时完成 Dense 检索、BM25 稀疏检索和 RRF 融合。
 - 基于租户、知识库、文档可见范围和文档所有者进行检索权限过滤。
+- 支持创建知识库、上传 JSONL、建立索引和整篇文档版本更新。
 - 对 Dense、BM25、RRF、Reranker 四个阶段分别进行评测。
 
 本项目与同级的 `handwritten-rag` 相互独立，不会导入或调用另一个项目中的代码。
@@ -88,6 +89,7 @@ enterprise-rag/
 ├── create_tables.py            # 明确创建 PostgreSQL 表
 ├── database.py                 # SQLAlchemy engine 和 Base
 ├── models.py                   # 数据表模型
+├── document_service.py         # 文档创建、更新和索引流程
 ├── minio_storage.py            # MinIO 文件上传和下载封装
 ├── milvus_storage.py           # Milvus collection、索引和检索封装
 ├── embedding.py                # Embedding 模型封装
@@ -95,6 +97,7 @@ enterprise-rag/
 ├── init_data.py                # 初始化示例数据并写入 Milvus
 ├── rag.py                      # 检索流程编排
 ├── rag_service.py              # FastAPI 检索服务
+├── sample_data/                # 文档新增与更新样例
 ├── test_rag_interface.py       # 检索接口冒烟测试
 ├── docker-compose.yml          # PostgreSQL、MinIO、Milvus、etcd、Attu
 ├── requirements.txt            # Python 依赖
@@ -191,6 +194,13 @@ curl -X POST http://127.0.0.1:8080/retrieve_every_stage \
 
 `/retrieve_every_stage` 分别返回 `dense`、`bm25`、`rrf` 和 `reranker` 的记录 ID，供评测使用。
 
+上传接口为 `/register_and_upload`，Streamlit 页面会调用它创建租户、用户、知识库和文档，并在索引完成后自动切换到新知识库。页面启动命令：
+
+```bash
+cd ../handwritten-agent
+streamlit run appliance_support_ui.py
+```
+
 ## 运行评测
 
 保持 RAG 服务运行，在另一个终端执行：
@@ -204,11 +214,4 @@ python evaluate_retrieval.py
 
 ## 当前边界
 
-当前版本已经覆盖企业 RAG 的核心链路，但仍是最小实现：
-
-- 示例数据初始化使用固定的租户、用户、知识库和文档 ID。
-- 暂未提供用户自行创建知识库和上传文档的页面。
-- 文档新增和更新流程尚未封装成统一服务。
-- 暂未加入登录认证、复杂 RBAC、任务队列和生产级监控。
-
-后续重点是在现有数据模型上补齐“创建知识库 → 上传文档 → 解析 → 建索引 → 更新/删除”的动态流程，而不是继续扩展权限层级。
+当前版本定位为企业 RAG 最小实现，暂不包含登录认证、复杂 RBAC、任务队列和生产级监控。

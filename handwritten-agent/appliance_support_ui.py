@@ -11,21 +11,69 @@ import json
 import time
 import uuid
 
+import requests
 import streamlit as st
 
 from appliance_support_deepseek import build_agent
+from tools import build_query_rag_tool
 
 
-st.set_page_config(
-    page_title="家电故障诊断 Agent",
-    page_icon="🛠️",
-    layout="wide",
-)
+
+generic_system_prompt = """
+你是可靠的企业知识库问答助手。
+
+用户询问知识库内容时，必须调用 query_rag。
+调用工具时，将用户问题改写成完整、独立的问题。
+
+工具返回资料后：
+1. 只依据工具返回的资料回答。
+2. 不得编造资料中不存在的信息。
+3. 资料不足时，明确说明知识库中没有足够信息。
+4. 回答应简洁、准确，并保留关键条件和数字。
+""".strip()
+
+
+system_prompt = """
+你是谨慎、可靠的家电故障排查助手。
+
+你可以调用 query_rag 工具查询家电故障资料。
+
+当用户询问故障代码、故障现象或处理方法，并且已经明确品牌、家电类型，以及故障代码或具体故障现象时，调用 query_rag。
+
+调用 query_rag 时：
+1. 将当前问题与对话历史中已经确认的信息合并。
+2. 将问题改写成脱离对话历史也能理解的完整问题。
+3. 不得猜测品牌、家电类型、型号、故障代码或用户已经执行的操作。
+4. 当前用户明确修改的信息优先于较早的对话历史。
+
+信息不足时，直接向用户追问，不要调用工具。
+
+工具返回资料后：
+1. 只依据工具返回的资料回答。
+2. 优先使用与品牌、家电类型、故障代码和现象完全匹配的资料。
+3. 不要把不相关候选中的故障原因或处理方法混入答案。
+4. 资料无法确定时，明确说明无法确定。
+5. 涉及拆机、电气、燃气、制冷剂或其他危险操作时，提醒用户停止自行处理并联系专业人员。
+""".strip()
+
+
+DEFAULT_USER_ID = "user-001"
+DEFAULT_KNOWLEDGE_BASE_ID = "kb-fault-codes"
+RAG_SERVICE_URL = "http://127.0.0.1:8080"
+
+
+st.set_page_config(page_title="企业知识库 Agent", page_icon="🛠️", layout="wide")
 
 
 @st.cache_resource
-def load_agent():
-    return build_agent()
+def load_agent(user_id="user-001", knowledge_base_id="kb-fault-codes", use_appliance_prompt=True):
+    rag_tool = build_query_rag_tool(user_id, knowledge_base_id, RAG_SERVICE_URL + "/retrieve")
+
+    if use_appliance_prompt:
+        agent_system_prompt = system_prompt
+    else:
+        agent_system_prompt = generic_system_prompt
+    return build_agent(tools=[rag_tool], agent_system_prompt=agent_system_prompt)
 
 
 def parse_content(content):
@@ -120,8 +168,85 @@ def render_trace(trace_items):
             st.write(detail)
 
 
-with st.spinner("正在加载 Qwen3-8B 和 LoRA Adapter……"):
-    agent = load_agent()
+def clear_conversation():
+    for key in ["agent_state", "thread_id", "chat_history", "trace_items"]:
+        st.session_state.pop(key, None)
+
+
+if "active_user_id" not in st.session_state:
+    st.session_state.active_user_id = DEFAULT_USER_ID
+
+if "active_knowledge_base_id" not in st.session_state:
+    st.session_state.active_knowledge_base_id = DEFAULT_KNOWLEDGE_BASE_ID
+
+if "use_appliance_prompt" not in st.session_state:
+    st.session_state.use_appliance_prompt = True
+
+
+with st.sidebar:
+    st.header("知识库")
+    with st.form("select_knowledge_base"):
+        st.caption("不修改下面两个ID时，使用默认家电故障知识库。")
+        selected_user_id = st.text_input("User ID", value=st.session_state.active_user_id)
+        selected_knowledge_base_id = st.text_input("Knowledge Base ID", value=st.session_state.active_knowledge_base_id)
+        select_submitted = st.form_submit_button("应用", use_container_width=True)
+
+    if select_submitted:
+        if not selected_user_id.strip() or not selected_knowledge_base_id.strip():
+            st.error("User ID和Knowledge Base ID不能为空")
+            st.stop()
+
+        st.session_state.active_user_id = selected_user_id.strip()
+        st.session_state.active_knowledge_base_id = selected_knowledge_base_id.strip()
+        st.session_state.use_appliance_prompt = selected_user_id.strip() == DEFAULT_USER_ID and selected_knowledge_base_id.strip() == DEFAULT_KNOWLEDGE_BASE_ID
+        st.session_state.pop("created_knowledge_base", None)
+        clear_conversation()
+        st.rerun()
+
+    st.divider()
+    st.subheader("创建知识库")
+    with st.form("upload_knowledge_base", clear_on_submit=False):
+        tenant_name = st.text_input("租户名称")
+        user_name = st.text_input("用户名称")
+        knowledge_base_name = st.text_input("知识库名称")
+        uploaded_file = st.file_uploader("上传JSONL文件", type=["jsonl"])
+        upload_submitted = st.form_submit_button("创建并上传", use_container_width=True)
+
+    if upload_submitted:
+        if not tenant_name.strip() or not user_name.strip() or not knowledge_base_name.strip() or uploaded_file is None:
+            st.error("请完整填写名称并选择JSONL文件")
+            st.stop()
+
+        try:
+            with st.spinner("正在创建知识库并生成索引……"):
+                response = requests.post(
+                    RAG_SERVICE_URL + "/register_and_upload",
+                    data={"tenant_name": tenant_name, "user_name": user_name, "knowledge_base_name": knowledge_base_name},
+                    files={"file": (uploaded_file.name, uploaded_file.getvalue(), "application/jsonl")},
+                    timeout=1800
+                )
+                response.raise_for_status()
+                created = response.json()
+        except requests.RequestException as error:
+            detail = error.response.text if error.response is not None else str(error)
+            st.error("上传失败：{}".format(detail))
+            st.stop()
+
+        st.session_state.active_user_id = created["user_id"]
+        st.session_state.active_knowledge_base_id = created["knowledge_base_id"]
+        st.session_state.use_appliance_prompt = False
+        st.session_state.created_knowledge_base = created
+        clear_conversation()
+        st.rerun()
+
+    if "created_knowledge_base" in st.session_state:
+        created = st.session_state.created_knowledge_base
+        st.success("知识库已创建，当前对话已自动切换")
+        st.code("user_id: {}\nknowledge_base_id: {}".format(created["user_id"], created["knowledge_base_id"]))
+
+
+with st.spinner("正在初始化 Agent……"):
+    agent = load_agent(st.session_state.active_user_id, st.session_state.active_knowledge_base_id, st.session_state.use_appliance_prompt)
 
 
 if "agent_state" not in st.session_state:
@@ -140,7 +265,7 @@ if "trace_items" not in st.session_state:
 title_column, button_column = st.columns([5, 1])
 
 with title_column:
-    st.title("家电故障诊断 Agent")
+    st.title("企业知识库 Agent")
 
 with button_column:
     if st.button("新建会话", use_container_width=True):
@@ -161,9 +286,11 @@ with chat_column:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    user_input = st.chat_input(
-        "请输入品牌、家电类型、故障代码或故障现象，示例：Bosch洗碗机显示E27并且传感器或阀出现故障，这是什么故障？"
-    )
+    if st.session_state.use_appliance_prompt:
+        input_placeholder = "请输入品牌、家电类型、故障代码或故障现象"
+    else:
+        input_placeholder = "请输入要查询的知识库问题"
+    user_input = st.chat_input(input_placeholder)
 
 
 with trace_column:

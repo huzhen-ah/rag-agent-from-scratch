@@ -3,6 +3,7 @@ transformers
 sentence-transformers
 numpy
 fastapi
+python-multipart
 uvicorn
 pydantic
 pymilvus==3.0.2

@@ -18,7 +18,7 @@ from agent import Agent
 from checkpoint import InMemoryCheckpointer
 from model import PeftChatModel
 from tool_register import Register
-from tools import query_rag_tool
+from tools import build_query_rag_tool
 import torch
 
 
@@ -59,7 +59,7 @@ system_prompt = """
 5. 涉及拆机、电气、燃气、制冷剂或其他危险操作时，提醒用户停止自行处理并联系专业人员。
 """.strip()
 
-
+query_rag_tool = build_query_rag_tool()
 def build_agent():
     register = Register()
     register.register(query_rag_tool)

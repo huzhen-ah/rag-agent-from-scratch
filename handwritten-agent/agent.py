@@ -131,7 +131,7 @@ class Agent:
 if __name__ == "__main__":
     from model import LocalChatModel
     from tool_register import Register
-    from tools import read_resume_tool, search_project_evidence_tool, update_user_profile_tool, query_rag_tool, read_file_tool
+    from tools import read_resume_tool, search_project_evidence_tool, update_user_profile_tool, build_query_rag_tool, read_file_tool
     from checkpoint import JsonlCheckpointer
     from memory import JsonlStore
     from skill import load_skill_metadata
@@ -139,6 +139,7 @@ if __name__ == "__main__":
     
     
     register = Register()
+    query_rag_tool = build_query_rag_tool()
     register.register(read_resume_tool)
     register.register(search_project_evidence_tool)
     register.register(query_rag_tool)

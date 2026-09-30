@@ -7,7 +7,7 @@
 - `enterprise-rag`：使用 PostgreSQL、MinIO 和 Milvus 实现权限过滤、文档版本、混合检索与分阶段评测。
 - `handwritten-agent`：不使用 LangGraph，手写 State、Reducer、Node、Edge、Router、Compiled Graph 和 Tool-Calling 循环。
 - `langgraph-agent`：使用 LangGraph 重构手写 Agent 的同一套核心业务流程。
-- `appliance-support`：基于手写 RAG 与 Agent Runtime 构建的家电故障诊断应用，串联 Qwen3-8B LoRA、混合检索、工具调用和可视化执行追踪。
+- `appliance-support`：连接企业 RAG 与手写 Agent Runtime 的 Streamlit 应用，支持默认知识库和用户上传知识库。
 
 手写 Agent 与 LangGraph 重构版均已完成 Checkpoint、HITL、Memory、Streaming、Subgraph、Multi-Agent、RAG Tool 和 Skills，并针对同一业务流程提供可对照实现。
 
@@ -87,62 +87,25 @@ rag-agent-from-scratch/
 → 本地LLM生成答案
 ```
 
-## 家电故障诊断 Agent
+## 企业知识库 Agent
 
-该应用面向“家电出现故障代码或异常现象后如何处理”的真实场景，将微调、RAG 和 Agent 串成一条可运行链路：
+页面默认连接家电故障知识库，也支持创建租户、用户和知识库，上传 JSONL 后自动建立索引并切换到新知识库。检索采用 Milvus Dense + BM25 + RRF 和 Qwen3 Reranker，Agent 使用 DeepSeek Tool Calling。
 
-```text
-Streamlit双栏界面
-→ 手写Graph Agent Runtime
-→ DeepSeek Tool Calling与多轮信息补全
-→ query_rag HTTP Tool
-→ Qwen3-Embedding + 手写BM25
-→ RRF融合
-→ Qwen3-Reranker精排
-→ DeepSeek生成故障解释与安全建议
-```
-
-当前家电知识库包含 438 条结构化故障资料，覆盖 13 个品牌和洗衣机、洗碗机、烘干机、冰箱、烤箱/炉灶五类家电。每条资料作为独立 Chunk，保留品牌、市场版本、家电类型、故障代码、故障含义、处理建议与来源链接。
-
-应用支持：
-
-- 信息不足时由模型继续追问，信息充分后生成独立的 `query_rag` 查询。
-- Dense、BM25 双路召回，RRF 融合后使用 CrossEncoder 精排并返回 Top-5。
-- 通过 `thread_id` 和 Checkpoint 保留多轮会话状态；同一会话重复提问时，模型可以复用已有上下文而不重复检索。
-- 右侧执行面板展示模型决策、参数检查、工具审核、RAG 返回文档、来源、分数、排名和节点耗时。
-- Qwen3-8B 基座通过 bitsandbytes NF4 4-bit 加载，并叠加 PEFT LoRA Adapter；同一套 Transformers/PEFT 代码可运行在 Apple Silicon MPS 与 NVIDIA CUDA 环境。
-
-### Agent评测
-
-当前使用 159 条单轮样本进行基础工具路由评测，与 RAG 检索评测集的 159 个问题保持一致。其中故障码查询、故障现象查询、故障码与现象组合查询各 53 条，用于评测信息充分时 Agent 是否调用 `query_rag`。完整评测中有 136 条成功调用，23 条未调用，`query_rag` 调用率为 **0.8553**；当前结果仅为总体指标，尚未细分失败类型。
-
-当前评测入口使用 DeepSeek API，仅覆盖“信息完整时是否调用 RAG”这一基础场景，暂不代表信息缺失追问、多轮上下文融合、工具参数质量和最终回答质量。详细说明见 [evaluation/README.md](evaluation/README.md)。
-
-### 运行家电应用
-
-目录约定：`appliance-support-sft` 与 `rag-agent-from-scratch` 位于同一父目录。家电语料由前者提供；Embedding 与 Reranker 模型放在 `handwritten-rag/models/`，模型权重不提交到本仓库。
-
-先启动检索服务：
+先启动企业 RAG 服务：
 
 ```bash
-conda activate ENV_rag
-cd rag-agent-from-scratch/handwritten-rag
-python appliance_rag_service.py
+conda activate ENV_enterprise
+cd rag-agent-from-scratch/enterprise-rag
+python rag_service.py
 ```
 
-再启动双栏界面：
+再启动页面：
 
 ```bash
 conda activate ENV_agent
 cd rag-agent-from-scratch/handwritten-agent
 export DEEPSEEK_API_KEY="你的 API Key"
 streamlit run appliance_support_ui.py
-```
-
-也可以使用终端交互版：
-
-```bash
-python appliance_support_deepseek.py
 ```
 
 ## Handwritten RAG
