@@ -8,6 +8,7 @@ Created on Thu Sep 17 16:07:00 2026
 #!/usr/bin/env python3
 
 import json
+from pathlib import Path
 import time
 import uuid
 
@@ -62,6 +63,7 @@ DEFAULT_KNOWLEDGE_BASE_ID = "kb-fault-codes"
 RAG_SERVICE_URL = "http://127.0.0.1:8080"
 # 默认 rag_corpus.jsonl 的第一条完整记录：apdb-673ddaac7225。
 DEFAULT_EXAMPLE_QUESTION = "Beko 英国版洗衣机出现 E01 故障，提示未检测到门已关闭并停止运行，应该怎么办？"
+EXAMPLE_JSONL_PATH = Path(__file__).resolve().parent / "examples" / "knowledge_base_example.jsonl"
 
 
 st.set_page_config(page_title="企业知识库 Agent", page_icon="🛠️", layout="wide")
@@ -207,6 +209,21 @@ with st.sidebar:
 
     st.divider()
     st.subheader("创建知识库")
+    st.caption("第一次体验？下载下面的示例文件，填写三个名称后直接上传即可。文件包含虚构公司资料，上传后可以问：示例公司的总部在哪里？")
+    example_jsonl = EXAMPLE_JSONL_PATH.read_text(encoding="utf-8")
+    st.download_button(
+        "下载示例知识库（JSONL）",
+        data=example_jsonl.encode("utf-8"),
+        file_name="knowledge_base_example.jsonl",
+        mime="application/x-ndjson",
+        key="download_example_jsonl",
+        on_click="ignore",
+        use_container_width=True,
+    )
+    with st.expander("想换成自己的资料？查看文件格式"):
+        st.write("每行一条资料，包含两个字段：id 是这条资料的编号，不能重复；content 是供问答使用的正文。")
+        st.code(example_jsonl, language="json", wrap_lines=True)
+        st.write("保留双引号、逗号和大括号，把 content 中的文字换成自己的资料；新增一行时，使用新的 id。保存为 UTF-8 编码的 .jsonl 文件后上传。")
     with st.form("upload_knowledge_base", clear_on_submit=False):
         tenant_name = st.text_input("租户名称", max_chars=100)
         user_name = st.text_input("用户名称", max_chars=100)
