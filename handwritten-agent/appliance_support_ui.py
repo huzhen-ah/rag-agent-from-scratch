@@ -60,6 +60,8 @@ system_prompt = """
 DEFAULT_USER_ID = "user-001"
 DEFAULT_KNOWLEDGE_BASE_ID = "kb-fault-codes"
 RAG_SERVICE_URL = "http://127.0.0.1:8080"
+# 默认 rag_corpus.jsonl 的第一条完整记录：apdb-673ddaac7225。
+DEFAULT_EXAMPLE_QUESTION = "Beko 英国版洗衣机出现 E01 故障，提示未检测到门已关闭并停止运行，应该怎么办？"
 
 
 st.set_page_config(page_title="企业知识库 Agent", page_icon="🛠️", layout="wide")
@@ -206,15 +208,23 @@ with st.sidebar:
     st.divider()
     st.subheader("创建知识库")
     with st.form("upload_knowledge_base", clear_on_submit=False):
-        tenant_name = st.text_input("租户名称")
-        user_name = st.text_input("用户名称")
-        knowledge_base_name = st.text_input("知识库名称")
-        uploaded_file = st.file_uploader("上传JSONL文件", type=["jsonl"])
+        tenant_name = st.text_input("租户名称", max_chars=100)
+        user_name = st.text_input("用户名称", max_chars=100)
+        knowledge_base_name = st.text_input("知识库名称", max_chars=100)
+        uploaded_file = st.file_uploader("上传JSONL文件", type=["jsonl"], max_upload_size=20)
+        st.caption("UTF-8 编码，每行一个 JSON 对象；id 为非空且不重复的字符串，content 为非空文本。单文件最多 20 MiB、5,000 条记录，单条正文最多 16 KiB。")
         upload_submitted = st.form_submit_button("创建并上传", use_container_width=True)
 
     if upload_submitted:
         if not tenant_name.strip() or not user_name.strip() or not knowledge_base_name.strip() or uploaded_file is None:
             st.error("请完整填写名称并选择JSONL文件")
+            st.stop()
+
+        if uploaded_file.size == 0:
+            st.error("上传失败：文件为空，请选择包含记录的 JSONL 文件")
+            st.stop()
+        if uploaded_file.size > 20 * 1024 * 1024:
+            st.error("上传失败：文件大小不能超过 20 MiB")
             st.stop()
 
         try:
@@ -228,7 +238,17 @@ with st.sidebar:
                 response.raise_for_status()
                 created = response.json()
         except requests.RequestException as error:
-            detail = error.response.text if error.response is not None else str(error)
+            if error.response is not None:
+                try:
+                    detail = error.response.json().get("detail")
+                except (ValueError, AttributeError):
+                    detail = None
+                if not isinstance(detail, str) or not detail:
+                    detail = "服务未能完成上传，请检查文件或稍后重试"
+            elif isinstance(error, requests.Timeout):
+                detail = "等待上传结果超时，服务可能仍在建立索引，请稍后确认后再重试"
+            else:
+                detail = "无法连接检索服务，请确认 RAG 已启动后重试"
             st.error("上传失败：{}".format(detail))
             st.stop()
 
@@ -282,6 +302,12 @@ chat_column, trace_column = st.columns([3, 2], gap="large")
 with chat_column:
     st.subheader("对话")
 
+    example_input = None
+    if st.session_state.active_user_id == DEFAULT_USER_ID and st.session_state.active_knowledge_base_id == DEFAULT_KNOWLEDGE_BASE_ID:
+        st.caption("点击示例问题，体验家电故障问答：")
+        if st.button(DEFAULT_EXAMPLE_QUESTION, key="default_kb_example", use_container_width=True):
+            example_input = DEFAULT_EXAMPLE_QUESTION
+
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
@@ -291,6 +317,8 @@ with chat_column:
     else:
         input_placeholder = "请输入要查询的知识库问题"
     user_input = st.chat_input(input_placeholder)
+    if example_input is not None:
+        user_input = example_input
 
 
 with trace_column:

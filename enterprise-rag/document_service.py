@@ -6,13 +6,13 @@ Created on Tue Sep 29 15:46:15 2026
 @author: huzhen
 """
 
-import json
 import os
 import uuid
 
 from sqlalchemy import select, delete
 from sqlalchemy.orm import Session
 from models import Tenant, User, KnowledgeBase, Document, DocumentVersion, KnowledgeRecord
+from upload_validation import load_jsonl
 
 class DocumentService:
 
@@ -25,29 +25,7 @@ class DocumentService:
         self.bucket_name = bucket_name
 
     def load_jsonl(self, file_path):
-        record_ids = set()
-        records = []
-        with open(file_path, "r", encoding="utf8") as f:
-            for line_num, line in enumerate(f,start=1):
-                line = line.strip()
-                if not line:
-                    continue
-                data = json.loads(line)
-                if "id" not in data or "content" not in data:
-                    raise ValueError("第 {} 行缺少id or content".format(line_num))
-                record_id = data["id"]
-                if record_id in record_ids:
-                    raise ValueError("第 {} 行的id已存在".format(line_num))
-                record_ids.add(record_id)
-                record = {
-                    "record_id" : record_id,
-                    "content" : data["content"],
-                    "attributes" : {k : v for k, v in data.items() if k not in ["id", "content"]}
-                }
-                records.append(record)
-        if not records:
-            raise ValueError("文件中无记录")
-        return records
+        return load_jsonl(file_path)
 
     def search_tenant(self, tenant_id):
         with Session(self.engine) as session:
@@ -186,8 +164,8 @@ class DocumentService:
 
 
         file_name = os.path.basename(file_path)
-        document_name = os.path.splitext(file_name)[0]
-        document_id = r"{}-{}".format(document_name[:31], uuid.uuid4().hex)
+        # Milvus 字符串限制按 UTF-8 字节计算，中文文件名不能直接拼入主键。
+        document_id = "doc-{}".format(uuid.uuid4().hex)
         object_name = f"{tenant_id}/{knowledge_base_id}/{document_id}/v1/{file_name}"
         #先上传到minio
         #object_name sample: "tenant-001/kb-fault-codes/doc-rag-corpus/v1/rag_corpus.jsonl"

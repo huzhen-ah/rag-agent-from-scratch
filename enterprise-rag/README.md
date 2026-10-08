@@ -201,6 +201,20 @@ cd ../handwritten-agent
 streamlit run appliance_support_ui.py
 ```
 
+上传文件必须使用 UTF-8 编码（支持 BOM），每行一个 JSON 对象，包含非空字符串 `id` 和非空文本 `content`；同一文件内 `id` 不能重复，其他字段作为附加属性保留。空白行可以跳过，整个文件为空则拒绝上传。
+
+本机演示服务的上传限制为：单文件 20 MiB、最多 5,000 条记录、单条正文 16 KiB、单行 JSON 64 KiB、`id` 最多 256 个字符。名称最多 100 个字符，文件名最多 255 个 UTF-8 字节。限制定义在 `upload_validation.py`，正文上限低于 Milvus 字段容量，避免超长文本进入模型。
+
+格式或字段错误返回 HTTP 400，并标明问题行；文件大小或记录数超限返回 413。上传与索引串行处理，已有任务处理中时返回 429；存储或索引异常返回 500，详细原因保存在服务日志。只有整个文件通过校验后才开始创建租户、用户和知识库，失败时页面保持原知识库。上传过程中创建的临时文件会清理。
+
+回归测试不加载模型，也不连接真实数据库。额外测试依赖为 `httpx`（本机环境已安装），新环境可通过 `pip install -r requirements-test.txt` 安装：
+
+```bash
+cd enterprise-rag
+conda activate ENV_enterprise
+python -m unittest discover -s tests -v
+```
+
 ## 运行评测
 
 保持 RAG 服务运行，在另一个终端执行：

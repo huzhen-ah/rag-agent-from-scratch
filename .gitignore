@@ -26,6 +26,10 @@ models/
 # Logs and temporary files
 *.log
 *.tmp
+.run-logs/
+
+# Local launcher contains a private API key after editing
+/start_rag_agent.sh
 
 # Local agent checkpoints
 handwritten-agent/checkpoints/
